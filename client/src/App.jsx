@@ -8,7 +8,6 @@ const App = () => {
   const [newNote, setNewNote] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -16,7 +15,6 @@ const App = () => {
     priority: 'Medium',
     user: 'user1',
   });
-
   const [editFormData, setEditFormData] = useState({
     _id: '',
     title: '',
@@ -56,14 +54,32 @@ const App = () => {
         if (res.ok) {
           const updatedTask = await res.json();
           setSelectedTask(updatedTask);
+          setData((prev) => prev.map(task => task._id === updatedTask._id ? updatedTask : task));
           setNewNote('');
-          fetchTasks();
         } else {
           console.error('Failed to add note');
         }
       } catch (error) {
         console.error('Error adding note:', error);
       }
+    }
+  };
+
+  const handleDeleteNote = async (taskId, noteId) => {
+    try {
+      const res = await fetch(`${config.backendEndpoint}/task/${taskId}/note/${noteId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        const updatedTask = await res.json();
+        setSelectedTask(updatedTask);
+        setData((prev) => prev.map(task => task._id === updatedTask._id ? updatedTask : task));
+      } else {
+        console.error('Failed to delete note');
+      }
+    } catch (err) {
+      console.error('Error deleting note:', err);
     }
   };
 
@@ -98,18 +114,12 @@ const App = () => {
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
-    setEditFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setEditFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmitNewTask = async (e) => {
@@ -190,7 +200,6 @@ const App = () => {
               <td>
                 <button onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}>Edit</button>
                 <button onClick={(e) => { e.stopPropagation(); handleDeleteTask(task._id); }}>Delete</button>
-                <button onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}>Add Note</button>
               </td>
             </tr>
           ))}
@@ -206,18 +215,19 @@ const App = () => {
           <p><strong>Assigned To:</strong> {selectedTask.user}</p>
           <p><strong>Notes:</strong></p>
           <ul>
-            {selectedTask.notes?.map((note, idx) => (
-              <li key={idx}>
-                {note.text} <small style={{ color: 'gray' }}>({new Date(note.createdAt).toLocaleString()})</small>
+            {selectedTask.notes?.map((note) => (
+              <li key={note._id}>
+                {note.text}
+                <button className="delete-note-btn" onClick={() => handleDeleteNote(selectedTask._id, note._id)}>❌</button>
               </li>
             ))}
           </ul>
 
-          <input
-            type="text"
-            value={newNote}
-            onChange={(e) => setNewNote(e.target.value)}
-            placeholder="Add a new note"
+          <input 
+            type="text" 
+            value={newNote} 
+            onChange={(e) => setNewNote(e.target.value)} 
+            placeholder="Add a new note" 
           />
           <button onClick={handleAddNote}>Save Note</button>
           <button onClick={() => handleEditTask(selectedTask)}>Edit Task</button>
@@ -225,6 +235,7 @@ const App = () => {
         </div>
       )}
 
+      {/* Modal for Adding Task */}
       {showModal && (
         <div className="modal">
           <div className="modal-content">
@@ -254,6 +265,7 @@ const App = () => {
         </div>
       )}
 
+      {/* Modal for Editing Task */}
       {showEditModal && (
         <div className="modal">
           <div className="modal-content">

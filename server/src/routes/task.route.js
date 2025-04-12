@@ -58,4 +58,25 @@ router.patch('/:id/note', async (req, res) => {
     }
   });
 
+router.delete('/:taskId/note/:noteId', async (req, res) => {
+    const { taskId, noteId } = req.params;
+  
+    try {
+      const task = await Task.findByIdAndUpdate(
+        taskId,
+        { $pull: { notes: { _id: noteId } } },
+        { new: true }
+      );
+  
+      if (!task) return res.status(404).json({ message: 'Task not found' });
+  
+      res.json(task);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete note' });
+    }
+  });
+  
+
+
 module.exports = router;

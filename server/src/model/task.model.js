@@ -20,6 +20,7 @@ const taskSchema = new mongoose.Schema({
         required: true,
     },
     notes: [{ 
+        _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
         text: String,
         createdAt: { type: Date, default: Date.now },
     }],
