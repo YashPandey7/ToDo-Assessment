@@ -1,0 +1,31 @@
+.container {
+    padding: 20px;
+    font-family: sans-serif;
+  }
+  
+  .task-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    cursor: pointer;
+  }
+  
+  .task-table th,
+  .task-table td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: left;
+  }
+  
+  .task-table tr:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .task-details {
+    margin-top: 30px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    background-color: #fafafa;
+    border-radius: 8px;
+  }
+  
