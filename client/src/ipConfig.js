@@ -1,5 +1,5 @@
 const config = {
-    backendEndpoint : "http://127.0.0.1:8080",
+    backendEndpoint : "https://todo-assessment-000k.onrender.com",
 };
 
 export default config;
