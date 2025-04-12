@@ -1,7 +1,9 @@
 const mongoose = require("mongoose");
-// import mongoose from "mongoose";
+require("dotenv").config();
+const MONGODB_URL = process.env.MONGODB_URL
 
-mongoose.connect("mongodb://127.0.0.1:27017/task-manager")
+console.log(MONGODB_URL)
+mongoose.connect(MONGODB_URL)
 .then(() => {
     console.log("Connected to MongoDB");
 }).catch((err) => {
