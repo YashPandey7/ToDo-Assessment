@@ -43,7 +43,7 @@ router.delete("/:id", async(req, res) => {
     }
 });
 
-router.patch('/task/:id/note', async (req, res) => {
+router.patch('/:id/note', async (req, res) => {
     const { text } = req.body;
   
     try {

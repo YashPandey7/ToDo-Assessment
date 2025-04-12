@@ -8,6 +8,7 @@ const App = () => {
   const [newNote, setNewNote] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -15,6 +16,7 @@ const App = () => {
     priority: 'Medium',
     user: 'user1',
   });
+
   const [editFormData, setEditFormData] = useState({
     _id: '',
     title: '',
@@ -44,20 +46,21 @@ const App = () => {
 
   const handleAddNote = async () => {
     if (newNote.trim()) {
-      const updatedTask = {
-        ...selectedTask,
-        notes: [...selectedTask.notes, { text: newNote }],
-      };
-
       try {
-        await fetch(`${config.backendEndpoint}/task/${selectedTask._id}`, {
-          method: 'PUT',
+        const res = await fetch(`${config.backendEndpoint}/task/${selectedTask._id}/note`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedTask),
+          body: JSON.stringify({ text: newNote }),
         });
-        fetchTasks();
-        setSelectedTask(updatedTask);
-        setNewNote('');
+
+        if (res.ok) {
+          const updatedTask = await res.json();
+          setSelectedTask(updatedTask);
+          setNewNote('');
+          fetchTasks();
+        } else {
+          console.error('Failed to add note');
+        }
       } catch (error) {
         console.error('Error adding note:', error);
       }
@@ -204,15 +207,17 @@ const App = () => {
           <p><strong>Notes:</strong></p>
           <ul>
             {selectedTask.notes?.map((note, idx) => (
-              <li key={idx}>{note.text}</li>
+              <li key={idx}>
+                {note.text} <small style={{ color: 'gray' }}>({new Date(note.createdAt).toLocaleString()})</small>
+              </li>
             ))}
           </ul>
 
-          <input 
-            type="text" 
-            value={newNote} 
-            onChange={(e) => setNewNote(e.target.value)} 
-            placeholder="Add a new note" 
+          <input
+            type="text"
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+            placeholder="Add a new note"
           />
           <button onClick={handleAddNote}>Save Note</button>
           <button onClick={() => handleEditTask(selectedTask)}>Edit Task</button>
@@ -220,7 +225,6 @@ const App = () => {
         </div>
       )}
 
-      {/* Modal for Adding Task */}
       {showModal && (
         <div className="modal">
           <div className="modal-content">
@@ -250,7 +254,6 @@ const App = () => {
         </div>
       )}
 
-      {/* Modal for Editing Task */}
       {showEditModal && (
         <div className="modal">
           <div className="modal-content">
