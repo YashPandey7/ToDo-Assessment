@@ -221,6 +221,7 @@ const App = () => {
         </select>
       </div>
 
+      <div class="table-responsive">
       <table className="task-table">
         <thead>
           <tr>
@@ -244,6 +245,7 @@ const App = () => {
           ))}
         </tbody>
       </table>
+      </div>
 
       {selectedTask && (
         <div className="task-details">
@@ -269,7 +271,7 @@ const App = () => {
             placeholder="Add a new note" 
           />
           <button onClick={handleAddNote}>Save Note</button>
-          <br/><br/>
+          <br/>
           <button onClick={() => handleEditTask(selectedTask)}>Edit Task</button>
           <button onClick={() => handleDeleteTask(selectedTask._id)}>Delete Task</button>
         </div>
