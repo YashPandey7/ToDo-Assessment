@@ -8,6 +8,7 @@ const App = () => {
   const [newNote, setNewNote] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -15,6 +16,7 @@ const App = () => {
     priority: 'Medium',
     user: 'user1',
   });
+
   const [editFormData, setEditFormData] = useState({
     _id: '',
     title: '',
@@ -24,59 +26,56 @@ const App = () => {
     user: '',
   });
 
+  const [filters, setFilters] = useState({ tag: '', priority: '', user: '' });
+  const [sortOption, setSortOption] = useState('dateDesc');
+
   useEffect(() => {
     fetchTasks();
   }, []);
 
   const fetchTasks = async () => {
     try {
-      const apiData = await fetch(`${config.backendEndpoint}/task/`);
-      const actualData = await apiData.json();
-      setData(actualData);
+      const res = await fetch(`${config.backendEndpoint}/task/`);
+      const tasks = await res.json();
+      setData(tasks);
     } catch (err) {
-      console.log(err);
+      console.error('Failed to fetch tasks:', err);
     }
   };
 
-  const handleTaskClick = (task) => {
-    setSelectedTask(task);
-  };
+  const handleTaskClick = (task) => setSelectedTask(task);
 
   const handleAddNote = async () => {
-    if (newNote.trim()) {
-      try {
-        const res = await fetch(`${config.backendEndpoint}/task/${selectedTask._id}/note`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: newNote }),
-        });
-
-        if (res.ok) {
-          const updatedTask = await res.json();
-          setSelectedTask(updatedTask);
-          setData((prev) => prev.map(task => task._id === updatedTask._id ? updatedTask : task));
-          setNewNote('');
-        } else {
-          console.error('Failed to add note');
-        }
-      } catch (error) {
-        console.error('Error adding note:', error);
-      }
-    }
-  };
-
-  const handleDeleteNote = async (taskId, noteId) => {
+    if (!newNote.trim()) return;
     try {
-      const res = await fetch(`${config.backendEndpoint}/task/${taskId}/note/${noteId}`, {
-        method: 'DELETE',
+      const res = await fetch(`${config.backendEndpoint}/task/${selectedTask._id}/note`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newNote }),
       });
-
       if (res.ok) {
         const updatedTask = await res.json();
         setSelectedTask(updatedTask);
-        setData((prev) => prev.map(task => task._id === updatedTask._id ? updatedTask : task));
-      } else {
-        console.error('Failed to delete note');
+        fetchTasks();
+        setNewNote('');
+      }
+    } catch (err) {
+      console.error('Error adding note:', err);
+    }
+  };
+
+  const handleDeleteNote = async (noteIndex) => {
+    const updatedNotes = selectedTask.notes.filter((_, idx) => idx !== noteIndex);
+    try {
+      const res = await fetch(`${config.backendEndpoint}/task/${selectedTask._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: updatedNotes }),
+      });
+      if (res.ok) {
+        const updatedTask = await res.json();
+        setSelectedTask(updatedTask);
+        fetchTasks();
       }
     } catch (err) {
       console.error('Error deleting note:', err);
@@ -88,15 +87,12 @@ const App = () => {
       const res = await fetch(`${config.backendEndpoint}/task/${taskId}`, {
         method: 'DELETE',
       });
-
       if (res.ok) {
-        setData((prevTasks) => prevTasks.filter((task) => task._id !== taskId));
-        if (selectedTask && selectedTask._id === taskId) setSelectedTask(null);
-      } else {
-        console.error('Failed to delete task');
+        setData((prev) => prev.filter((task) => task._id !== taskId));
+        if (selectedTask?._id === taskId) setSelectedTask(null);
       }
     } catch (err) {
-      console.error('Error while deleting task:', err);
+      console.error('Error deleting task:', err);
     }
   };
 
@@ -129,21 +125,17 @@ const App = () => {
       tags: formData.tags.split(',').map(tag => tag.trim()),
       notes: [],
     };
-
     try {
       const res = await fetch(`${config.backendEndpoint}/task/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-
       if (res.ok) {
         const createdTask = await res.json();
         setData([...data, createdTask]);
         setShowModal(false);
         setFormData({ title: '', description: '', tags: '', priority: 'Medium', user: 'user1' });
-      } else {
-        console.error('Failed to create task');
       }
     } catch (err) {
       console.error('Error creating task:', err);
@@ -156,31 +148,78 @@ const App = () => {
       ...editFormData,
       tags: editFormData.tags.split(',').map(tag => tag.trim()),
     };
-
     try {
       const res = await fetch(`${config.backendEndpoint}/task/${editFormData._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedTask),
       });
-
       if (res.ok) {
         fetchTasks();
         setShowEditModal(false);
         setSelectedTask(null);
-      } else {
-        console.error('Failed to update task');
       }
     } catch (err) {
       console.error('Error updating task:', err);
     }
   };
 
+  const filteredAndSortedTasks = data
+    .filter(task => {
+      const tagMatch = filters.tag ? task.tags.includes(filters.tag) : true;
+      const priorityMatch = filters.priority ? task.priority === filters.priority : true;
+      const userMatch = filters.user ? task.user === filters.user : true;
+      return tagMatch && priorityMatch && userMatch;
+    })
+    .sort((a, b) => {
+      if (sortOption === 'dateAsc') return new Date(a.createdAt) - new Date(b.createdAt);
+      if (sortOption === 'dateDesc') return new Date(b.createdAt) - new Date(a.createdAt);
+      if (sortOption === 'priorityAsc') return a.priority.localeCompare(b.priority);
+      if (sortOption === 'priorityDesc') return b.priority.localeCompare(a.priority);
+      return 0;
+    });
+
   return (
     <div className="container">
       <h1>📝 Todo List</h1>
-
       <button className="add-btn" onClick={() => setShowModal(true)}>➕ Add New Task</button>
+
+      <div className="filters">
+        <input
+          placeholder="Filter by tag"
+          value={filters.tag}
+          onChange={(e) => setFilters({ ...filters, tag: e.target.value })}
+        />
+        <select
+          value={filters.priority}
+          onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+        >
+          <option value="">All Priorities</option>
+          <option>High</option>
+          <option>Medium</option>
+          <option>Low</option>
+        </select>
+        <select
+          value={filters.user}
+          onChange={(e) => setFilters({ ...filters, user: e.target.value })}
+        >
+          <option value="">All Users</option>
+          <option>user1</option>
+          <option>user2</option>
+          <option>user3</option>
+          <option>user4</option>
+          <option>user5</option>
+        </select>
+        <select
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value)}
+        >
+          <option value="dateDesc">Newest First</option>
+          <option value="dateAsc">Oldest First</option>
+          <option value="priorityAsc">Priority A → Z</option>
+          <option value="priorityDesc">Priority Z → A</option>
+        </select>
+      </div>
 
       <table className="task-table">
         <thead>
@@ -192,7 +231,7 @@ const App = () => {
           </tr>
         </thead>
         <tbody>
-          {data.map((task) => (
+          {filteredAndSortedTasks.map((task) => (
             <tr key={task._id} onClick={() => handleTaskClick(task)}>
               <td>{task.title}</td>
               <td>{task.priority}</td>
@@ -213,16 +252,16 @@ const App = () => {
           <p><strong>Description:</strong> {selectedTask.description}</p>
           <p><strong>Priority:</strong> {selectedTask.priority}</p>
           <p><strong>Assigned To:</strong> {selectedTask.user}</p>
+          <p><strong>Tags:</strong> {selectedTask.tags?.join(', ')}</p>
+          <p><strong>Created At:</strong> {new Date(selectedTask.createdAt).toLocaleString()}</p>
           <p><strong>Notes:</strong></p>
           <ul>
-            {selectedTask.notes?.map((note) => (
-              <li key={note._id}>
-                {note.text}
-                <button className="delete-note-btn" onClick={() => handleDeleteNote(selectedTask._id, note._id)}>❌</button>
+            {selectedTask.notes?.map((note, idx) => (
+              <li key={idx}>
+                {note.text} <button onClick={() => handleDeleteNote(idx)}>❌</button>
               </li>
             ))}
           </ul>
-
           <input 
             type="text" 
             value={newNote} 
@@ -230,12 +269,12 @@ const App = () => {
             placeholder="Add a new note" 
           />
           <button onClick={handleAddNote}>Save Note</button>
+          <br/><br/>
           <button onClick={() => handleEditTask(selectedTask)}>Edit Task</button>
           <button onClick={() => handleDeleteTask(selectedTask._id)}>Delete Task</button>
         </div>
       )}
 
-      {/* Modal for Adding Task */}
       {showModal && (
         <div className="modal">
           <div className="modal-content">
@@ -265,7 +304,6 @@ const App = () => {
         </div>
       )}
 
-      {/* Modal for Editing Task */}
       {showEditModal && (
         <div className="modal">
           <div className="modal-content">
