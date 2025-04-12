@@ -41,6 +41,21 @@ router.delete("/:id", async(req, res) => {
     }catch(err){
         res.status(500).json({message : err.message});
     }
-})
+});
+
+router.patch('/task/:id/note', async (req, res) => {
+    const { text } = req.body;
+  
+    try {
+      const updatedTask = await Task.findByIdAndUpdate(
+        req.params.id,
+        { $push: { notes: { text } } },
+        { new: true }
+      );
+      res.json(updatedTask);
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to add note' });
+    }
+  });
 
 module.exports = router;
